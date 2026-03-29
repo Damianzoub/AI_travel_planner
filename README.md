@@ -38,11 +38,6 @@ travelmind/
 │   ├── 04-tools.md             ← every external API and how it is used
 │   └── 05-agentic-patterns.md  ← the patterns this project demonstrates (CV gold)
 │
-├── frontend/
-│   └── README.md               ← UI setup, components, how it talks to backend
-│
-├── backend/
-│   └── README.md               ← API endpoints, request flow, auth
 │
 ├── agents/
 │   ├── README.md               ← how agents are structured and communicate
@@ -63,8 +58,10 @@ travelmind/
 ├── tools/
 │   └── README.md               ← API wrappers, search, vision tools
 │
-└── evals/
-    └── README.md               ← how to measure if the system actually works
+├── evals/
+|    └── README.md               ← how to measure if the system actually works
+|
+├── app.py
 ```
 
 ---
