@@ -1,6 +1,5 @@
-anthropic
-langchain-core
-langgraph
+google-adk
+google-genai
 pydantic
 python-dotenv
 ollama
