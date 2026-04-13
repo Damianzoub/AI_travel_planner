@@ -1,6 +1,7 @@
 from typing import Dict , List, Any
 import json 
 import time 
+import os 
 import logging
 import streamlit as st 
 from datetime import date , timedelta
@@ -12,6 +13,14 @@ from google.adk.agents import Agent
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from agents.orchestrator.orchestrator_adk import orchestrator,TripRequest
+from dotenv import load_dotenv
+
+from services.planner_service import generate_trip_plan
+
+load_dotenv()
+APP_NAME = os.getenv("APP_NAME")
+USER_ID = os.getenv("USER_ID")
+SESSION_ID = os.getenv("SESSION_ID")
 #debugging tool
 logging.basicConfig(level=logging.INFO)
 
@@ -202,9 +211,12 @@ def render_trip_form() -> Dict[str,Any] | None:
                     interests = st.multiselect("Interests", INTEREST_OPTIONS, default=["food", "culture"])
 
                 with c2:
-                    trip_length = st.slider("Trip length (days)", 2, 14, 4)
-                    end_date = start_date + timedelta(days=trip_length - 1)
-                    st.text_input("End date", value=str(end_date), disabled=True)
+                    end_date = st.date_input(
+                        'End date',
+                        value = start_date + timedelta(days=3),
+                        min_value = start_date
+                    )
+                    trip_length= (end_date-start_date).days +1
                     pace = st.select_slider("Pace", options=PACE_OPTIONS, value="balanced")
                     travelers = st.selectbox("Travelers", ["Solo", "Couple", "Friends", "Family"], index=1)
 
@@ -393,6 +405,24 @@ def render_settings()->None:
             "before wiring any backend logic, APIs, or multi-agent orchestration."
         )
 
+# ADAPT SCHEMA
+def adapt_agent_result(request: dict, result: dict) -> dict:
+    return {
+        "summary": {
+            "destination": result.get("destination", request["destination"]),
+            "dates": f"{request['start_date']} → {request['end_date']}",
+            "budget": request["budget"],
+            "estimated_total": 0,
+            "within_budget": None,
+        },
+        "itinerary": [],
+        "flights": [],
+        "hotels": [],
+        "budget_breakdown": [],
+        "map_points": [],
+        "highlights": result.get("highlights", []),
+        "trip_summary": result.get("trip_summary", ""),
+    }
 
 def main() -> None:
     init_session_state()
@@ -401,10 +431,13 @@ def main() -> None:
     if page == "Plan a Trip":
         request = render_trip_form()
         if request is not None:
-            plan = build_mock_plan(request)
-            st.session_state.current_plan = plan 
-            st.session_state.trip_history.append(plan)
-        
+            try:
+                raw_result = generate_trip_plan(request)
+                plan = adapt_agent_result(request,raw_result)
+                st.session_state.current_plan = plan
+            except Exception as e:
+                st.error(f"Planning failed: {e}")
+
         if st.session_state.current_plan is not None:
             render_results(st.session_state.current_plan)
     elif page=="Saved Trips" :
